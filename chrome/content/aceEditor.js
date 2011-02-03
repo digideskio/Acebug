@@ -25,6 +25,13 @@ Firebug.Ace =
         {
             return Firebug.largeCommandLineEditor;
         };
+		Firebug.ConsolePanel.prototype.detach=function(oldChrome, newChrome){
+			var oldFrame=oldChrome.$("fbAceBrowser")
+			var newFrame=newChrome.$("fbAceBrowser")
+			if(oldFrame.contentWindow == Firebug.Ace.rightWindowWrapped){
+				oldFrame.QueryInterface(Ci.nsIFrameLoaderOwner).swapFrameLoaders(newFrame)
+			}
+		};
     },
 
     showPanel: function(browser, panel) {
