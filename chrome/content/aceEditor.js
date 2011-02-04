@@ -68,18 +68,13 @@ Firebug.largeCommandLineEditor = {
         }, false);
 
         //add shortcuts
-        Firebug.Ace.env.editor.addCommand({
-            name:'execute',
-            key:'Ctrl-Return',
-            exec:function(){
+		
+        Firebug.Ace.env.editor.addCommands({
+            execute: function(){
                 Firebug.CommandLine.enter(Firebug.currentContext);
-            }
-        });
-        Firebug.Ace.env.editor.addCommand({
-            name:'complete',
-            key:'Ctrl-Space',
-            exec:function(){
-                Firebug.CommandLine.enter(Firebug.currentContext);
+            },
+			startAutocompleter: function(){
+                Firebug.Ace.autocompleter.start(editor);
             }
         });
     },

@@ -64,18 +64,30 @@ exports.launch = function(env) {
     var Search = require("ace/search").Search;
     var canon = require("pilot/canon");
 
-    var customKeySet = {};
-    editor.addCommand = function(x) {
-        canon.addCommand({
-            name: x.name,
-            exec: function(env, args, request) {
-                x.exec(env, args);
-            }
-        });
-        delete customKeySet.reverse;
-        customKeySet[x.name] = x.key;
-        env.editor.setKeyboardHandler(new HashHandler(customKeySet));
-    };
+	env.editor.addCommands = function(commandSet) {
+		for (var i in commandSet){
+			var exec = commandSet[i]
+			if(typeof exec == 'function')
+				canon.addCommand({name: i, exec: exec})
+		}
+	}
+	
+    editor.normalKeySet = new HashHandler({
+		startAutocompleter: 'Ctrl-Space|Ctrl-.',
+		execute: 'Ctrl-Return',
+	});
+	editor.autocompleteKeySet = new HashHandler({
+		startAutocompleter: 'Ctrl-Space',
+		complete: 'Return',
+		dotComplete: 'Ctrl-.|Alt-.',
+		execute: 'Ctrl-Return',
+		cancelCompletion: 'Esc',
+		nextEntry: 'Down',
+		previousEntry: 'Up',
+	});
+    
+	editor.setKeyboardHandler(editor.autocompleteKeySet);
+
 };
 
 });
