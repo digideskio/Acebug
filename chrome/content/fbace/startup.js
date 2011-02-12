@@ -26,26 +26,6 @@ exports.launch = function(env, options) {
 	editor.setTheme(options.theme)
     env.editor.setSession(jsDoc);
 	
-	env.setKeybinding = function(name){
-		if(name !='Vim' && name != 'Emacs'){
-			env.editor.setKeyboardHandler(null);
-			return
-		}
-		var path = "ace/keyboard/keybinding/" + name
-		var module = require(path)
-		if(!module)
-			require([path], function(module){
-				env.editor.setKeyboardHandler(module[name])
-			})
-		else
-			env.editor.setKeyboardHandler(module[name])
-	}
-	
-	env.setKeybinding(options.keybinding)
-   
-
-    var HashHandler = require("ace/keyboard/hash_handler").HashHandler;
-
     env.editor.setShowInvisibles(options.showinvisiblecharacters);
     env.editor.setHighlightActiveLine(options.highlightactiveline);
     env.editor.session.setUseSoftTabs(options.softtabs);
@@ -53,6 +33,11 @@ exports.launch = function(env, options) {
     env.editor.setShowPrintMargin(false);
     env.editor.session.setUseWrapMode(options.wordwrap);
     env.editor.session.setWrapLimitRange(null, null);
+	
+	// not needed in acebug 
+	editor.renderer.moveTextAreaToCursor = 
+	editor.textInput.onContextMenu = function(){};
+
 
     function onResize() {
         editor.resize();
@@ -95,5 +80,56 @@ exports.launch = function(env, options) {
         bindings[cmd.name] = cmd.key;
         env.editor.setKeyboardHandler(new HashHandler(bindings));
     };
+    /**********  handle keyboard *****/	
+	var HashHandler = require("ace/keyboard/hash_handler").HashHandler;
+	var Search = require("ace/search").Search;
+    var canon = require("pilot/canon");
+
+	env.setKeybinding = function(name){
+		if(name !='Vim' && name != 'Emacs'){
+			env.editor.setKeyboardHandler(null);
+			return
+		}
+		var path = "ace/keyboard/keybinding/" + name
+		var module = require(path)
+		if(!module)
+			require([path], function(module){
+				env.editor.setKeyboardHandler(env.editor.normalKeySet = module[name])
+			})
+		else
+			env.editor.setKeyboardHandler(env.editor.normalKeySet = module[name])
+	}
+	
+	env.setKeybinding(options.keybinding)
+   
+	env.editor.addCommands = function(commandSet) {
+		for (var i in commandSet){
+			var exec = commandSet[i]
+			if(typeof exec == 'function')
+				canon.addCommand({name: i, exec: exec})
+		}
+	}
+	
+	//add commands to default binding
+	editor.keyBinding.$defaulKeyboardHandler.$config
+	var bindings = editor.keyBinding.$defaulKeyboardHandler.$config;
+
+	bindings.startAutocompleter = 'Ctrl-Space|Ctrl-.|Alt-.';
+	bindings.execute = 'Ctrl-Return'
+	delete bindings.reverse;
+	new HashHandler(bindings);
+	
+
+	editor.autocompletionKeySet = new HashHandler({
+		startAutocompleter: 'Ctrl-Space',
+		complete: 'Return',
+		dotComplete: 'Ctrl-.|Alt-.',
+		execute: 'Ctrl-Return',
+		cancelCompletion: 'Esc',
+		nextEntry: 'Down',
+		previousEntry: 'Up',
+	});
+    
+	//editor.setKeyboardHandler(editor.normalKeySet);
 };
 });
