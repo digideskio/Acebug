@@ -6,40 +6,75 @@
     <title>Editor</title>
 
     <link rel="stylesheet" href="styles.css" type="text/css" media="screen" charset="utf-8">
-
-    <script src="../ace/demo/require.js" type="text/javascript" charset="utf-8"></script>
-    <script type="text/javascript">
-        var config = {
-            paths: {
-                fbace: "../../fbace",
-                ace: "../../ace/lib/ace",
-                pilot: "../../ace/support/pilot/lib/pilot"
-            }
-        };
-
-        var deps = [ "pilot/fixoldbrowsers", "pilot/plugin_manager", "pilot/settings",
-                     "pilot/environment", "fbace/startup" ];
-
-        var plugins = [ "pilot/index", "ace/defaults" ];
-
-        var startAce = function(callback, options) {
-            require(config);
-            require(deps, function() {
-                var catalog = require("pilot/plugin_manager").catalog;
-                catalog.registerPlugins(plugins).then(function() {
-                    var env = require("pilot/environment").create();
-                    catalog.startupPlugins({ env: env }).then(function() {
-                        require("fbace/startup").launch(env, options);
-                    }).then(callback);
-                });
-            });
-        };
-	</script>
-
 </head>
 <body>
     <div id="editor">
 		<div id="toggleGutter" onclick="toggleGutter();"></div>
 	</div>
+
+    <script type="text/javascript">
+
+function transformPath(path){
+	var aceRoot = '../ace/build/src/'
+	var sub = 'ace/theme/'
+	if(path.indexOf(sub)==0){
+		return aceRoot + 'theme-' + path.substr(sub.length) + '.js'
+	}
+	var sub = 'ace/keyboard/keybinding/'
+	if(path.indexOf(sub)==0){
+		return aceRoot + 'keybinding-' + path.substr(sub.length) + '.js'
+	}
+	var sub = 'ace/mode/'
+	if(path.indexOf(sub)==0){
+		return aceRoot + 'mode-' + path.substr(sub.length) + '.js'
+	}
+	var sub = 'fbace/'
+	if(path.indexOf(sub)==0){
+		return path.substr(sub.length) + '.js'
+	}
+	return aceRoot + path + '.js'	
+}
+
+require = loadScripts = function(deps, callback, lastUrl){
+	//console.log(deps)
+	if(typeof deps == 'string')//this happens when module's path is wrong
+		return;
+		
+	var url = deps.shift()
+	if(!url)
+		return callback&&callback(require(lastUrl))
+	
+	
+	var script = document.createElement("script")
+	script.type = "text/javascript";	  
+	script.onload = function(){
+		loadScripts(deps, callback, url)
+	}
+   
+	script.src = transformPath(url);
+	document.documentElement.appendChild(script);	
+}
+
+
+
+var startAce = function(callback, options) {
+	var rootDeps = ['ace', "ace/mode/javascript", "fbace/startup"];
+	//"ace/theme/textmate" is built into ace.js so there's no need to load that
+	if(!options.theme)
+		options.theme = "ace/theme/textmate"
+	else if(options.theme != "ace/theme/textmate")
+		rootDeps.push(options.theme)
+
+	require(rootDeps, function() {
+		var catalog = require("pilot/plugin_manager").catalog;
+		catalog.registerPlugins([ "pilot/index" ]).then(function() {
+			var env = require("pilot/environment").create();
+			catalog.startupPlugins({ env: env }).then(function() {
+				require("fbace/startup").launch(env, options);
+			}).then(callback);
+		});
+	});
+};
+	</script>
 </body>
 </html>

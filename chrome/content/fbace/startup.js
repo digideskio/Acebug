@@ -1,4 +1,4 @@
-define(function(require, exports, module) {
+define('fbace/startup', function(require, exports, module) {
 
 exports.launch = function(env, options) {
     env.acebug = {require: require};
@@ -7,45 +7,6 @@ exports.launch = function(env, options) {
     event = require("pilot/event");
     Editor = require("ace/editor").Editor;
     Renderer = require("ace/virtual_renderer").VirtualRenderer;
-
-    switch(options.theme) {
-        case "ace/theme/clouds":
-            theme = require("ace/theme/clouds");
-        break;
-        case "ace/theme/clouds_midnight":
-            theme = require("ace/theme/clouds_midnight");
-        break;
-        case "ace/theme/cobalt":
-            theme = require("ace/theme/cobalt");
-        break;
-        case "ace/theme/dawn":
-            theme = require("ace/theme/dawn");
-        break;
-        case "ace/theme/eclipse":
-            theme = require("ace/theme/eclipse");
-        break;
-        case "ace/theme/idle_fingers":
-            theme = require("ace/theme/idle_fingers");
-        break;
-        case "ace/theme/kr_theme":
-            theme = require("ace/theme/kr_theme");
-        break;
-        case "ace/theme/mono_industrial":
-            theme = require("ace/theme/mono_industrial");
-        break;
-        case "ace/theme/monokai":
-            theme = require("ace/theme/monokai");
-        break;
-        case "ace/theme/pastel_on_dark":
-            theme = require("ace/theme/pastel_on_dark");
-        break;
-        case "ace/theme/textmate":
-            theme = require("ace/theme/textmate");
-        break;
-        case "ace/theme/twilight":
-            theme = require("ace/theme/twilight");
-        break;
-    }
 
     EditSession = require("ace/edit_session").EditSession;
     UndoManager = require("ace/undomanager").UndoManager;
@@ -56,30 +17,32 @@ exports.launch = function(env, options) {
         return null;
     };
 
-    //empty gutter is annoying, so put space into document
-    jsDoc = new EditSession(' ');
+    jsDoc = new EditSession('');
     jsDoc.setMode(new JavaScriptMode());
     jsDoc.setUndoManager(new UndoManager());
 
     var container = document.getElementById("editor");
-    editor = env.editor = new Editor(new Renderer(container, theme));
+    editor = env.editor = new Editor(new Renderer(container, options.theme));
+	editor.setTheme(options.theme)
     env.editor.setSession(jsDoc);
-
-    env.acebug.keybindings = {
-        vim: require("ace/keyboard/keybinding/vim").Vim,
-        emacs: require("ace/keyboard/keybinding/emacs").Emacs
-    };
-    switch(options.keybinding) {
-        case "Ace":
-            env.editor.setKeyboardHandler(null);
-        break;
-        case "Vim":
-            env.editor.setKeyboardHandler(env.acebug.keybindings.vim);
-        break;
-        case "Emacs":
-            env.editor.setKeyboardHandler(env.acebug.keybindings.emacs);
-        break;
-    }
+	
+	env.setKeybinding = function(name){
+		if(name !='Vim' && name != 'Emacs'){
+			env.editor.setKeyboardHandler(null);
+			return
+		}
+		var path = "ace/keyboard/keybinding/" + name
+		var module = require(path)
+		if(!module)
+			require([path], function(module){
+				env.editor.setKeyboardHandler(module[name])
+			})
+		else
+			env.editor.setKeyboardHandler(module[name])
+	}
+	
+	env.setKeybinding(options.keybinding)
+   
 
     var HashHandler = require("ace/keyboard/hash_handler").HashHandler;
 

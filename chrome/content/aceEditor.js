@@ -321,17 +321,7 @@ var acebugPrefObserver = {
                 env.editor.setHighlightActiveLine(this._branch.getBoolPref(aData));
             break;
             case "keybinding":
-                switch(this._branch.getCharPref(aData)) {
-                    case "Ace":
-                        env.editor.setKeyboardHandler(null);
-                    break;
-                    case "Vim":
-                        env.editor.setKeyboardHandler(env.acebug.keybindings.vim);
-                    break;
-                    case "Emacs":
-                        env.editor.setKeyboardHandler(env.acebug.keybindings.emacs);
-                    break;
-                }
+                env.setKeybinding(this._branch.getCharPref(aData))
             break;
             case "showinvisiblecharacters":
                 env.editor.setShowInvisibles(this._branch.getBoolPref(aData));
