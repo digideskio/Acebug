@@ -56,7 +56,7 @@
 				<textbox multiline='true' id='autocomplate-bubble' flex='1' wrap='off' width='1' /> -->
 			</hbox>
 		</panel>
-		<panel id='autocomplate-info-bubble' noautofocus="true"  ignorekeys='true'/>
+		<panel id='autocomplate-info-bubble' noautofocus="true"  ignorekeys='true'><textbox  multiline="true" wrap='off' flex="1"/></panel>
     </popupset>
 
     <stringbundleset id="stringbundleset">

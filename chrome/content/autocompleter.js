@@ -71,10 +71,11 @@ Firebug.Ace.autocompleter = {
 		context=context || Firebug.currentContext;
 		if(!string)
 			this.onEvalSuccess(context.global, context)
-		Firebug.CommandLine.evaluate(string, context, context.thisValue, null,
-            bind(this.onEvalSuccess, this),
-			bind(this.onEvalFail, this)                
-        )
+		else
+			Firebug.CommandLine.evaluate(string, context, context.thisValue, null,
+				bind(this.onEvalSuccess, this),
+				bind(this.onEvalFail, this)
+			)
 	},
 	
 	start: function(editor){
@@ -113,7 +114,9 @@ Firebug.Ace.autocompleter = {
 			//set handlers
 			this.panel.setAttribute('onpopupshown','Firebug.Ace.autocompleter.setView(0)')
 			this.tree.setAttribute('ondblclick','Firebug.Ace.autocompleter.insertSuggestedText();Firebug.Ace.autocompleter.finish()')
+			this.tree.setAttribute('onclick','Firebug.Ace.env.editor.focus()')
 			this.tree.setAttribute('onselect','Firebug.Ace.autocompleter.onSelect()')
+			this.panel.getElementsByTagName('toolbarbutton')[0].setAttribute('oncommand','Firebug.Ace.autocompleter.compare()')
 		}
 		var win =Firebug.Ace.rightWindow
 		var editor = Firebug.Ace.env.editor
@@ -141,19 +144,21 @@ Firebug.Ace.autocompleter = {
 		this.editor.selection.on('changeCursor', this.selectionListener)
 				
 		var bubbleX = posX - minX > maxX - posX -panelW ? minX+10 : maxX - panelW*1.5 - 10;			
-		this.bubblePos={w: panelW*1.5, h: panelH*1.3, l: bubbleX, t: posY}
+		this.bubblePos={w: panelW*1.7, h: panelH*1.5, l: bubbleX, t: posY}
 		this.bubble.height = this.bubblePos.h;
 		this.bubble.width = this.bubblePos.w;
+		this.bubble.showPopup(null, this.bubblePos.l, this.bubblePos.t, "popup")
 	},
 	
 	$selectionListener: function(e){
+		e.data = this.editor.selection.getCursor()
 		if(this.baseRange.contains(e.data.row, e.data.column) || this.hidden)
 			return this.finish()
 
 		this.filterRange.end = e.data
 		this.text = this.editor.session.getTextRange(this.filterRange)
 		dump(this.text)
-		if( /[\+\-;,= ]/.test(this.text) )
+		if( /[\+\-;,= \(\)\[\]\{\}\!><]/.test(this.text) )
 			return this.finish()
 		this.filter(this.unfilteredArray,this.text);
 		this.setView(0)
@@ -177,7 +182,7 @@ Firebug.Ace.autocompleter = {
 					var fr = self.filterRange
 					fr.end.column = fr.start.column = cursor.column
 					fr.end.row = fr.start.row = cursor.row
-					this.text = ''
+					self.text = ''
 					self.onEvalSuccess(o.object)
 				}					
 			},
@@ -208,31 +213,21 @@ Firebug.Ace.autocompleter = {
 			this.number.value = si + ':' +this.sortedArray.length + '/' + this.unfilteredArray.length
 
 			if(si <0 || si > this.tree.view.rowCount){
-				this.sayInBubble(this.object.toString())
+				this.sayInBubble(jn.inspect(this.object))
 				return
 			}			
 			var o=this.sortedArray[si]
-			this.sayInBubble(o.toString())
-			return//why o is undefined
-			var text=setget(this.object,o.name)
-			if(!text)text=o.object
-			this.sayInBubble(text+'\n'+o.description+'\n'+o.depth)
+			var longName = jn.inspect(o.object, 'long')			
+			var text = jn.lookupSetter(this.object, o.name)
+			this.sayInBubble(longName+'\n'+text)
 		}catch(e){}
 	},
 	
 	sayInBubble: function(text){
-		if(this.bubble.state=='open'){
-			this.bubble.moveTo(this.bubblePos.l, this.bubblePos.t)
-		}else
-			this.bubble.showPopup(null, this.bubblePos.l, this.bubblePos.t, "popup")
+		if(this.hidden)
+			return				
 		var item = this.bubble.firstChild;
-		if(!item){
-			item=document.createElementNS("http://www.w3.org/1999/xhtml","pre");
-			item.style.MozUserSelect='text'
-			this.bubble.appendChild(item);
-		}
-		item.textContent = text
-		this.bubble.value = text
+		item.value = text
 	},
 	
 	insertSuggestedText: function(additionalText){
@@ -383,8 +378,10 @@ Firebug.Ace.autocompleter = {
 	finish:function(i){
 		this.editor.selection.removeEventListener('changeCursor', this.selectionListener)
 		this.hidden=true
+		this.text=this.sortedArray=this.unfilteredArray=this.object=this.text=null
 		this.editor.setKeyboardHandler(this.editor.normalKeySet);
 		this.panel.hidePopup()
+		this.bubble.hidePopup()
 	},
 
 	parseJSFragment: function(evalString){
@@ -456,12 +453,29 @@ Firebug.Ace.autocompleter = {
 			i=irestore
 		}
 		return [evalString.substr(i,it-i),evalString.substr(it+1)];
+	},
+	
+	compare: function(){
+		this.sayInBubble(compareWithPrototype.compare(this.object).join('\n'))
 	}
 };
 
 
 Firebug.Ace.autocompleter.selectionListener=bind(Firebug.Ace.autocompleter.$selectionListener, Firebug.Ace.autocompleter)
 
+var compareWithPrototype = {
+	getProto: function(object){
+		var class = jn.getClass(object);
+		if (class != 'Object'&& class in window)
+		try{
+			var proto = window[class].prototype
+		}catch(e){}
+		return proto
+	},
+	compare: function(object){		
+		return jn.compare(object, object.__proto__)
+	}
+}
 
 
 var getIDsInDoc=function(){
@@ -585,9 +599,6 @@ else//4.0b2+
 
 // todo: cleanup 
 var jn={};
-jn.say=function(a){
-	EJS_appendToConsole(a?a.toString():a)
-}
 
 jn.inspect=function(x,long){	
 	if(x == null) return String(x);
@@ -607,14 +618,14 @@ jn.inspect=function(x,long){
 			return t+string.substring(string.indexOf(" "),i-1)+'~'+x.length		
 		}
 		if(isNative){
-			return string+'~'+x.length
+			return string.replace('()','(~'+x.length+')')
 		}		
 		return	string		
 	}
 	if(Class=='XML')
-		return Class+'` '+x.toXMLString();
+		return Class+'`\n'+x.toXMLString();
 	if(t!='object')
-		return Class+'` '+string
+		return Class+'`\n'+string
 	
 	if(Class=='Array'){
 		var l=x.length
@@ -627,7 +638,7 @@ jn.inspect=function(x,long){
 	}
 	
 	
-	nameList.push('`',Class,'` ',string)
+	nameList.push('`',Class,'`\n',string)
 	//special cases
 	var h=InspectHandlers[Class]
 	if(h)return nameList.join('')+h(x)
@@ -747,23 +758,24 @@ jn.getClass=function(x) {
 }
 
 
-function setget(object,prop){
-	object=object.wrappedJSObject||object
-	var ans='',s
+jn.lookupSetter = function (object,prop){
+	object = FBL.unwrapObject(object)
+	var ans=[],s
 	try{
 		s=object.__lookupSetter__(prop)
-		if(s)ans+=s.toString().replace(/^.*()/,'set '+prop+'()')
+		if(s)ans.push( jn.inspect(s,'long').replace(/^.*()/,'set '+prop+'()') )
 		s=object.__lookupGetter__(prop)
-		if(s)ans+=s.toString().replace(/^.*()/,'\nget '+prop+'()')
+		if(s)ans.push( jn.inspect(s,'long').replace(/^.*()/,'get '+prop+'()') )
 	}catch(e){Components.utils.reportError(e)}
-	return ans
+	return ans.join('\n')
 }
 
 
 jn.compare=function(a,b){
 	var ans=[]
-	for(var i in a)try{
-		var ai=a[i],bi=b[i]
+	for(var i in a)try{		
+		try{var ai=a[i]}catch(e){ai=null}
+		try{var bi=b[i]}catch(e){bi=null}
 		
 		if(ai!=bi){
 			if(typeof(ai)=='function'&&ai.toString()==bi.toString())
@@ -771,10 +783,9 @@ jn.compare=function(a,b){
 			ans.push([i,a[i],b[i]])
 		}
 	}catch(e){ans.push([i,ai,bi])}
-return ans
+	return ans
 }
 
-jn.setget=setget
 
 
 

@@ -38,6 +38,8 @@ Firebug.Ace =
 
 Firebug.largeCommandLineEditor = {
     initialize: function() {
+        if(!this._getValue)
+            return;
         if(!Firebug.Ace.rightWindow)
             Firebug.Ace.initializeUI();
 
@@ -59,6 +61,7 @@ Firebug.largeCommandLineEditor = {
             this.setFontSize(this._fontSizeBuffer);
             delete this._fontSizeBuffer;
         }
+        delete this._setFontSize;
 
         // this is wrong, but needed to keep commandline value in synch
         // firebugs commandline binding has similar listener for oninput
@@ -71,7 +74,7 @@ Firebug.largeCommandLineEditor = {
             execute: function(){
                 Firebug.CommandLine.enter(Firebug.currentContext);
             },
-			startAutocompleter: function(){
+            startAutocompleter: function(){
                 Firebug.Ace.autocompleter.start(editor);
             }
         });
@@ -120,7 +123,7 @@ Firebug.largeCommandLineEditor = {
 
     // activated when ace is loaded
     _getValue: function() {
-        return Firebug.Ace.env.editor.selection.doc.toString();
+        return Firebug.Ace.env.editor.session.getValue();
     },
 
     _setValue: function(text) {
@@ -155,7 +158,7 @@ Firebug.largeCommandLineEditor = {
         Firebug.Ace.env && Firebug.Ace.env.editor.focus();
     },
 
-	getAttribute: function() {
+    __noSuchMethod__: function() {
     },
 
     loadFile:function()
