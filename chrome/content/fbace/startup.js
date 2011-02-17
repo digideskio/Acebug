@@ -34,6 +34,9 @@ exports.launch = function(env, options) {
     env.editor.session.setUseWrapMode(options.wordwrap);
     env.editor.session.setWrapLimitRange(null, null);
 	
+	env.editor.setHighlightSelectedWord(true);   
+    //env.editor.renderer.setHScrollBarAlwaysVisible(false);
+	
 	// not needed in acebug 
 	editor.renderer.moveTextAreaToCursor = 
 	editor.textInput.onContextMenu = function(){};

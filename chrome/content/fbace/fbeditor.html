@@ -64,11 +64,13 @@ require = loadScripts = function(deps, callback, lastUrl){
 
 var startAce = function(callback, options) {
 	var rootDeps = ['ace', "ace/mode/javascript", "fbace/startup"];
+	if(!options)
+		options = {};
 	//"ace/theme/textmate" is built into ace.js so there's no need to load that
 	if(!options.theme)
-		options.theme = "ace/theme/textmate"
+		options.theme = "ace/theme/textmate";
 	else if(options.theme != "ace/theme/textmate")
-		rootDeps.push(options.theme)
+		rootDeps.push(options.theme);
 
 	require(rootDeps, function() {
 		var catalog = require("pilot/plugin_manager").catalog;
