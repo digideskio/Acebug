@@ -61,9 +61,14 @@ require = loadScripts = function(deps, callback, lastUrl){
 }
 
 
-
+var onLaunch
 var startAce = function(callback, options) {
-	var rootDeps = ['ace', "ace/mode/javascript", "fbace/startup"];
+	if(onLaunch){
+		onLaunch = onLaunch || callback
+		return
+	}
+	onLaunch = callback || true;
+	var rootDeps = ['ace-uncompressed', "ace/mode/javascript", "ace/mode/css", "ace/mode/xml", "ace/mode/html", "fbace/startup"];
 	if(!options)
 		options = {};
 	//"ace/theme/textmate" is built into ace.js so there's no need to load that

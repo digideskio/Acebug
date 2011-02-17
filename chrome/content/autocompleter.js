@@ -113,6 +113,7 @@ Firebug.Ace.autocompleter = {
 			this.bubble=document.getElementById("autocomplate-info-bubble")
 			//set handlers
 			this.panel.setAttribute('onpopupshown','Firebug.Ace.autocompleter.setView(0)')
+			this.panel.setAttribute('onpopuphidden','Firebug.Ace.autocompleter.finish()')
 			this.tree.setAttribute('ondblclick','Firebug.Ace.autocompleter.insertSuggestedText();Firebug.Ace.autocompleter.finish()')
 			this.tree.setAttribute('onclick','Firebug.Ace.env.editor.focus()')
 			this.tree.setAttribute('onselect','Firebug.Ace.autocompleter.onSelect()')
@@ -376,8 +377,9 @@ Firebug.Ace.autocompleter = {
 	},
 	
 	finish:function(i){
-		this.editor.selection.removeEventListener('changeCursor', this.selectionListener)
+		if(this.hidden)return
 		this.hidden=true
+		this.editor.selection.removeEventListener('changeCursor', this.selectionListener)
 		this.text=this.sortedArray=this.unfilteredArray=this.object=this.text=null
 		this.editor.setKeyboardHandler(this.editor.normalKeySet);
 		this.panel.hidePopup()

@@ -15,7 +15,10 @@ Firebug.Ace =
     initializeUI: function() {
         var browser = FBL.$("fbAceBrowser");
         this.rightWindowWrapped = browser.contentWindow;
-        this.rightWindow = Firebug.Ace.rightWindowWrapped.wrappedJSObject;
+        this.rightWindow =this.rightWindowWrapped.wrappedJSObject;
+		var browser1 = FBL.$("fbAceBrowser1");
+        this.win1Wrapped = browser1.contentWindow;
+        this.win1 = this.win1Wrapped.wrappedJSObject;
 
         Firebug.CommandLine.getCommandLineLarge = function()
         {
@@ -27,6 +30,11 @@ Firebug.Ace =
             var newFrame = newChrome.$("fbAceBrowser");
             if(oldFrame.contentWindow == Firebug.Ace.rightWindowWrapped) {
                 oldFrame.QueryInterface(Ci.nsIFrameLoaderOwner).swapFrameLoaders(newFrame)
+				var oldFrame = oldChrome.$("fbAceBrowser1");
+				var newFrame = newChrome.$("fbAceBrowser1");
+                oldFrame.QueryInterface(Ci.nsIFrameLoaderOwner).swapFrameLoaders(newFrame)
+					Firebug.ScriptPanel.prototype.browser = newFrame;
+
             }
         };
     },
@@ -34,6 +42,26 @@ Firebug.Ace =
     showPanel: function(browser, panel) {
 
     },
+	
+	getOptions: function(){
+		var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+            .getService(Components.interfaces.nsIPrefService);
+        var branch = prefs.getBranch("extensions.acebug.");
+        var options = {};
+
+        var names = branch.getChildList("", {});
+        for (let i = 0; i < names.length; i++) {
+            let name = names[i];
+            if (branch.getPrefType(name) == branch.PREF_BOOL) {
+                options[name] = branch.getBoolPref(name);
+            } else if (branch.getPrefType(name) == branch.PREF_STRING) {
+                options[name] = branch.getCharPref(name);
+            } else {
+                options[name] = branch.getIntPref(name);
+            }
+        }
+		return options
+	}
 };
 
 Firebug.largeCommandLineEditor = {
@@ -85,26 +113,9 @@ Firebug.largeCommandLineEditor = {
     _startLoading: function() {
         if(this._loadingStarted)
             return;
-        this._loadingStarted = true;
+        this._loadingStarted = true;       
 
-        var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-            .getService(Components.interfaces.nsIPrefService);
-        var branch = prefs.getBranch("extensions.acebug.");
-        var options = {};
-
-        var names = branch.getChildList("", {});
-        for (let i = 0; i < names.length; i++) {
-            let name = names[i];
-            if (branch.getPrefType(name) == branch.PREF_BOOL) {
-                options[name] = branch.getBoolPref(name);
-            } else if (branch.getPrefType(name) == branch.PREF_STRING) {
-                options[name] = branch.getCharPref(name);
-            } else {
-                options[name] = branch.getIntPref(name);
-            }
-        }
-
-        Firebug.Ace.rightWindow.startAce(bind(this.initialize,this), options);
+        Firebug.Ace.rightWindow.startAce(bind(this.initialize,this), Firebug.Ace.getOptions());
     },
 
     getValue: function() {
@@ -409,55 +420,6 @@ function writeFile(file, text)
     converter.close();
 }
 
-
-// ************************************************************************************************
-// StyleSheetEditor
-
-function StyleSheetEditor(doc)
-{
-    this.box = this.tag.replace({}, doc, this);
-    this.input = this.box.firstChild;
-}
-
-StyleSheetEditor.prototype = domplate(Firebug.BaseEditor,
-{
-    getValue: function()
-    {
-        return this.input.value;
-    },
-
-    setValue: function(value)
-    {
-        return this.input.value = value;
-    },
-
-    show: function(target, panel, value, textSize, targetSize)
-    {
-        var command = Firebug.chrome.$("cmd_toggleCSSEditing");
-        command.setAttribute("checked", true);
-
-        this.target = target;
-        this.panel = panel;
-
-        this.panel.panelNode.appendChild(this.box);
-
-        this.input.value = value;
-        this.input.focus();
-    },
-
-    hide: function()
-    {
-        var command = Firebug.chrome.$("cmd_toggleCSSEditing");
-        command.setAttribute("checked", false);
-
-        if (this.box.parentNode == this.panel.panelNode)
-            this.panel.panelNode.removeChild(this.box);
-
-        delete this.target;
-        delete this.panel;
-        delete this.styleSheet;
-    }
-});
 
 // ************************************************************************************************
 

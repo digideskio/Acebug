@@ -35,6 +35,19 @@
         </box>
     </vbox>
 
+	<deck id="fbPanelBar1-deck" >
+		<iframe id="fbAceBrowser1" type="content" flex="1"
+			 tooltip="fbTooltip" contextmenu="fbContextMenu"
+			 src="chrome://acebug/content/fbace/fbeditor.html"
+			 position="1"/>
+	</deck>
+	<script type="application/x-javascript" src="chrome://acebug/content/scriptPanel.js"/>
+	
+	<statusbar id='status-bar'>
+		<toolbarbutton label='script' oncommand='var d=Firebug.chrome.getPanelBrowser({}).parentNode;
+d.selectedIndex=(parseInt(d.selectedIndex)+1)%2'/>
+	</statusbar>
+
 
 	<popupset id='mainPopupSet'>
 		<panel id="aceAutocompletePanel" noautofocus="true"  ignorekeys='true'>

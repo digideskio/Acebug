@@ -11,7 +11,10 @@ exports.launch = function(env, options) {
     EditSession = require("ace/edit_session").EditSession;
     UndoManager = require("ace/undomanager").UndoManager;
 
-    JavaScriptMode = require("ace/mode/javascript").Mode;
+    CSSMode = require("ace/mode/css").Mode;
+    HTMLMode = require("ace/mode/html").Mode;
+    XMLMode = require("ace/mode/xml").Mode;
+	JavaScriptMode = require("ace/mode/javascript").Mode;
     // worker is more of nuisance now
     JavaScriptMode.prototype.createWorker = function(session) {
         return null;
@@ -134,5 +137,25 @@ exports.launch = function(env, options) {
 	});
     
 	//editor.setKeyboardHandler(editor.normalKeySet);
+	//breakpoint handlers
+	event.addListener(editor.renderer.$gutter, 'mousedown', function(e){
+		if(e.target.className.indexOf('gutter-cell')==-1)
+			return
+		var lineNo = parseInt(e.target.textContent)-1,state
+		if(state=editor.session.$breakpoints[lineNo])
+			editor.session.clearBreakpoint(lineNo)
+		else
+			editor.session.setBreakpoint(lineNo)
+		editor.session.panel.setBreakpoint(lineNo, state)
+	})
+	
+	getMode = function(name){
+		if(name.slice(-5)=='.html')
+			return new HTMLMode()
+		if(name.slice(-4)=='.xml')
+			return new XMLMode()
+		//if(name.slice(-5)=='.html')
+			return new JavaScriptMode()		
+	}
 };
 });
